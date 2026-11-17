@@ -106,14 +106,16 @@ button{cursor:pointer}
 </style>
 
 <header class="bar">
-  <div class="brand">Struktogramm <small>DIN 66261 · Nassi-Shneiderman</small></div>
+  <div class="brand">Struktogramm <small>DIN 66261</small></div>
   <div class="actions">
     <button class="btn" id="bNew">Neu</button>
     <button class="btn" id="bOpen">Öffnen</button>
     <button class="btn" id="bSave" title="Als .nsd.json speichern">Speichern</button>
     <span class="sep"></span>
-    <button class="btn primary" id="bPdf">PDF exportieren</button>
-    <button class="btn" id="bSvg">SVG</button>
+    <button class="btn primary" id="bPdf" title="Als PDF exportieren (A4)">PDF exportieren</button>
+    <button class="btn" id="bDocx" title="Als Word-Dokument (.docx) exportieren">Word</button>
+    <button class="btn" id="bSvg" title="Als Vektorgrafik (.svg) exportieren">SVG</button>
+    <button class="btn" id="bPng" title="Als Bild (.png) exportieren">PNG</button>
     <span class="sep"></span>
     <button class="btn icon" id="bUndo" aria-label="Rückgängig" title="Rückgängig">↶</button>
     <button class="btn icon" id="bRedo" aria-label="Wiederholen" title="Wiederholen">↷</button>
@@ -338,7 +340,8 @@ function renderInsp(){
     h=`<h2>Eigenschaften</h2><p class="hint">Tippe einen Block an, um Text und Bedingungen zu ändern, ihn zu verschieben oder zu löschen.</p>
     <dl class="keys"><dt>Entf</dt><dd>Block löschen</dd><dt>⌘/Strg Z</dt><dd>Rückgängig</dd><dt>⌘/Strg ⇧ Z</dt><dd>Wiederholen</dd>
     <dt>⌘/Strg C X V</dt><dd>Kopieren, Ausschneiden, Einfügen</dd><dt>Alt ↑ ↓</dt><dd>Block verschieben</dd><dt>⌘/Strg S</dt><dd>Speichern</dd></dl>
-    <p class="note">Speichern erzeugt eine <b>.nsd.json</b>-Datei. Die kannst du später mit „Öffnen“ weiterbearbeiten. Mehrzeiliger Text: Enter im Textfeld.</p>`;
+    <p class="note">Alles läuft nur in deinem Browser, nichts wird hochgeladen. Der aktuelle Stand wird automatisch auf diesem Gerät gespeichert.</p>
+    <p class="note">Speichern erzeugt eine <b>.nsd.json</b>-Datei. Die kannst du später mit „Öffnen“ weiterbearbeiten. Export als PDF, Word, SVG oder PNG. Mehrzeiliger Text: Enter im Textfeld.</p>`;
   } else if(e.slot){
     h=`<h2>Leerer Zweig</h2><p class="hint">Wähle links einen Block, um ihn hier einzufügen. Leer lassen ist erlaubt (leerer Zweig nach DIN).</p>`+
       (clip?`<div class="row"><button class="btn" data-act="paste">Einfügen</button></div>`:'');
@@ -402,7 +405,8 @@ async function saveFile(name,data,mime){
   let d=null;
   if(window.claude&&typeof window.claude.use==='function'){ try{ d=await window.claude.use('downloads'); }catch(e){ d=null; } }
   if(d){
-    try{ const res=await d.save({filename:name,data}); if(res&&res.status==='saved') toast('Gespeichert: '+name); }
+    if(data instanceof Blob) data=await data.arrayBuffer();
+    try{ const res=await d.save({filename:name,data});if(res&&res.status==='saved') toast('Gespeichert: '+name); }
     catch(e){ const c=e&&e.code; toast(c==='declined'?'Speichern abgebrochen':c==='rate_limited'?'Bitte kurz warten und nochmal versuchen':'Speichern ist hier nicht möglich'); }
     return;
   }
@@ -433,6 +437,65 @@ function exportPdf(){
   o.texts.forEach(t=>{ if(t.s) pdf.text(t.s,X(t.x),Y(t.y),{align:t.a==='middle'?'center':t.a==='end'?'right':'left'}); });
   saveFile(fname()+'.pdf',pdf.output('arraybuffer'),'application/pdf');
 }
+/* ---------- PNG & Word (komplett im Browser, ohne Server) ---------- */
+function renderPng(scale){
+  return new Promise((res,rej)=>{
+    const o=layout(), img=new Image();
+    img.onload=()=>{
+      const c=document.createElement('canvas'); c.width=Math.round(o.W*scale); c.height=Math.round(o.H*scale);
+      const g=c.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,c.width,c.height); g.drawImage(img,0,0,c.width,c.height);
+      c.toBlob(b=>b?res({blob:b,W:o.W,H:o.H}):rej(new Error('png')),'image/png');
+    };
+    img.onerror=()=>rej(new Error('svg'));
+    img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(toSVG(o,false));
+  });
+}
+async function exportPng(){
+  try{ const {blob}=await renderPng(3); saveFile(fname()+'.png',blob,'image/png'); }
+  catch(e){ toast('PNG konnte nicht erzeugt werden.'); }
+}
+const CRC=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(u){ let c=~0; for(let i=0;i<u.length;i++) c=CRC[(c^u[i])&255]^(c>>>8); return (~c)>>>0; }
+function zip(files,type){ // ZIP ohne Kompression (reicht für .docx)
+  const enc=new TextEncoder(), parts=[], central=[]; let off=0;
+  files.forEach(f=>{
+    const nm=enc.encode(f.name), d=typeof f.data==='string'?enc.encode(f.data):f.data, crc=crc32(d);
+    const h=new DataView(new ArrayBuffer(30));
+    h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(12,0x21,true);
+    h.setUint32(14,crc,true); h.setUint32(18,d.length,true); h.setUint32(22,d.length,true); h.setUint16(26,nm.length,true);
+    parts.push(new Uint8Array(h.buffer),nm,d);
+    const c=new DataView(new ArrayBuffer(46));
+    c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(14,0x21,true);
+    c.setUint32(16,crc,true); c.setUint32(20,d.length,true); c.setUint32(24,d.length,true); c.setUint16(28,nm.length,true); c.setUint32(42,off,true);
+    central.push(new Uint8Array(c.buffer),nm);
+    off+=30+nm.length+d.length;
+  });
+  const cs=central.reduce((a,b)=>a+b.length,0), e=new DataView(new ArrayBuffer(22));
+  e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true); e.setUint32(12,cs,true); e.setUint32(16,off,true);
+  return new Blob([...parts,...central,new Uint8Array(e.buffer)],{type});
+}
+async function exportDocx(){
+  let p; try{ p=await renderPng(3); }catch(e){ toast('Word-Export fehlgeschlagen.'); return; }
+  const png=new Uint8Array(await p.blob.arrayBuffer()), land=p.W>p.H;
+  const pw=land?16838:11906, ph=land?11906:16838, M=1134;            // A4 in Twips, 2 cm Rand
+  const maxW=(pw-2*M)*635, maxH=(ph-2*M-300)*635, EMU=9525;           // 1 px = 9525 EMU bei 96 dpi
+  const k=Math.min(1,maxW/(p.W*EMU),maxH/(p.H*EMU)), cx=Math.round(p.W*EMU*k), cy=Math.round(p.H*EMU*k);
+  const X='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n', R='http://schemas.openxmlformats.org/';
+  const files=[
+    {name:'[Content_Types].xml',data:X+`<Types xmlns="${R}package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`},
+    {name:'_rels/.rels',data:X+`<Relationships xmlns="${R}package/2006/relationships"><Relationship Id="rId1" Type="${R}officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`},
+    {name:'word/_rels/document.xml.rels',data:X+`<Relationships xmlns="${R}package/2006/relationships"><Relationship Id="rId1" Type="${R}officeDocument/2006/relationships/image" Target="media/struktogramm.png"/></Relationships>`},
+    {name:'word/document.xml',data:X+`<w:document xmlns:w="${R}wordprocessingml/2006/main" xmlns:r="${R}officeDocument/2006/relationships" xmlns:wp="${R}drawingml/2006/wordprocessingDrawing" xmlns:a="${R}drawingml/2006/main" xmlns:pic="${R}drawingml/2006/picture"><w:body>`+
+      `<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="1" name="Struktogramm" descr="${esc(doc.title)}"/>`+
+      `<a:graphic><a:graphicData uri="${R}drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="1" name="struktogramm.png"/><pic:cNvPicPr/></pic:nvPicPr>`+
+      `<pic:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic>`+
+      `</a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`+
+      `<w:sectPr><w:pgSz w:w="${pw}" w:h="${ph}"${land?' w:orient="landscape"':''}/><w:pgMar w:top="${M}" w:right="${M}" w:bottom="${M}" w:left="${M}" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr></w:body></w:document>`},
+    {name:'word/media/struktogramm.png',data:png},
+  ];
+  saveFile(fname()+'.docx',zip(files,'application/vnd.openxmlformats-officedocument.wordprocessingml.document'));
+}
+
 function openFile(file){
   const fr=new FileReader();
   fr.onload=()=>{
@@ -476,6 +539,8 @@ $('fileIn').onchange=e=>{ const f=e.target.files[0]; if(f) openFile(f); e.target
 $('bSave').onclick=saveNsd;
 $('bPdf').onclick=exportPdf;
 $('bSvg').onclick=exportSvg;
+$('bDocx').onclick=exportDocx;
+$('bPng').onclick=exportPng;
 $('bUndo').onclick=doUndo; $('bRedo').onclick=doRedo;
 
 document.addEventListener('keydown',e=>{

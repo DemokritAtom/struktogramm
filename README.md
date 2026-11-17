@@ -1,7 +1,10 @@
 # Struktogramm-Editor
 
-Browser-Editor für Struktogramme (Nassi-Shneiderman, DIN 66261) mit Export als PDF, SVG und `.nsd.json`.
+Browser-Editor für Struktogramme nach DIN 66261.
 
 **Live:** https://demokritatom.github.io/struktogramm/
 
-Läuft komplett im Browser, keine Installation nötig. Der aktuelle Stand wird automatisch im `localStorage` gespeichert.
+- Läuft komplett im Browser, nichts wird hochgeladen, keine Installation nötig.
+- Der aktuelle Stand wird automatisch im Browser gespeichert (`localStorage`).
+- Export als **PDF**, **Word (.docx)**, **SVG** und **PNG**.
+- Speichern/Öffnen als `.nsd.json` zum Weiterbearbeiten.
