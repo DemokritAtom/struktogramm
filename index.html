@@ -1,8 +1,18 @@
 <!doctype html>
 <html lang="de">
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Struktogramm-Editor</title>
+<meta name="description" content="Struktogramme nach DIN 66261 im Browser zeichnen und als PDF, Word, SVG oder PNG exportieren. Installierbar und offline nutzbar.">
+<meta name="theme-color" content="#f7f8fa" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a1e26" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Struktogramm">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Arimo:wght@400;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -15,29 +25,68 @@
   --paper:#ffffff; --hover:rgba(29,78,216,.07); --grid:#d9dde4;
   --ui:"IBM Plex Sans", system-ui, -apple-system, sans-serif;
   --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
-  --dia:Arimo, Arial, Helvetica, sans-serif;
+  --dia:Arimo, Arial, Helvetica, sans-serif; --ok:#15803d;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#12151b; --panel:#1a1e26; --ink:#e6e9ef; --muted:#9aa3b2; --line:#2c323d;
   --accent:#7c9dff; --accent-ink:#0e1320; --accent-soft:#1f2a45; --danger:#ff8a80;
-  --paper:#ffffff; --hover:rgba(29,78,216,.08); --grid:#1f242d; color-scheme:dark }}
+  --paper:#ffffff; --hover:rgba(29,78,216,.08); --grid:#1f242d; --ok:#4ade80; color-scheme:dark }}
 :root[data-theme="dark"]{
   --bg:#12151b; --panel:#1a1e26; --ink:#e6e9ef; --muted:#9aa3b2; --line:#2c323d;
   --accent:#7c9dff; --accent-ink:#0e1320; --accent-soft:#1f2a45; --danger:#ff8a80;
-  --paper:#ffffff; --hover:rgba(29,78,216,.08); --grid:#1f242d; color-scheme:dark }
+  --paper:#ffffff; --hover:rgba(29,78,216,.08); --grid:#1f242d; --ok:#4ade80; color-scheme:dark }
 
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:14px;line-height:1.45}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:14px;line-height:1.45;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
 button,input,textarea{font:inherit;color:inherit}
-button{cursor:pointer}
+button{cursor:pointer;touch-action:manipulation}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 .bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;
-  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-top:max(10px,env(safe-area-inset-top,0px));padding-bottom:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   background:var(--panel);border-bottom:1px solid var(--line)}
-.brand{display:flex;align-items:baseline;gap:8px;font-weight:600;font-size:16px;margin-right:auto}
+.brand{display:flex;align-items:baseline;gap:8px;font-weight:600;font-size:16px;margin-right:auto;min-width:0}
 .brand small{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--muted);font-weight:400}
 .actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.hist{display:flex;gap:6px;align-items:center}
+.mob{display:none}
+
+/* App-Badge (PWA) */
+.pwa{align-self:center;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--bg);color:var(--ink);
+  border-radius:999px;padding:2px 11px 2px 9px;min-height:26px;font-size:12px;font-weight:500;white-space:nowrap}
+.pwa:hover{border-color:var(--muted)}
+.pwa .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s,box-shadow .3s}
+.pwa.ready .dot{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+.pwa.can{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);animation:nudge 2.4s ease 1.2s 2}
+@keyframes nudge{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 35%,transparent)}50%{box-shadow:0 0 0 6px transparent}}
+
+/* Export-Menü (Handy) */
+.expwrap{position:relative}
+.menu{position:absolute;right:0;top:calc(100% + 6px);z-index:40;min-width:210px;background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  box-shadow:0 12px 32px rgba(0,0,0,.2);padding:6px;display:flex;flex-direction:column}
+.menu[hidden]{display:none}
+.menu button{display:flex;justify-content:space-between;align-items:baseline;gap:12px;border:0;background:none;text-align:left;padding:10px 12px;border-radius:6px;min-height:44px}
+.menu button:hover,.menu button:focus-visible{background:var(--accent-soft)}
+.menu b{font-weight:500}
+.menu i{font-style:normal;font-size:12px;color:var(--muted)}
+
+/* Dialog „Als App nutzen“ */
+.dlg{border:1px solid var(--line);border-radius:16px;padding:0;background:var(--panel);color:var(--ink);width:min(420px,calc(100% - 32px));max-height:calc(100% - 32px);box-shadow:0 24px 64px rgba(0,0,0,.28)}
+.dlg::backdrop{background:rgba(10,14,20,.5)}
+.dlg-in{padding:20px;display:flex;flex-direction:column;gap:14px}
+.dlg-hero{display:flex;gap:14px;align-items:center}
+.dlg-hero img{border-radius:13px;flex:none;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.dlg h3{margin:0 0 2px;font-size:17px;font-weight:600}
+.dlg p{margin:0;color:var(--muted)}
+.feat{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+.feat li{display:flex;gap:9px;align-items:flex-start}
+.feat svg{flex:none;margin-top:3px;color:var(--ok)}
+.how{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.how ol{margin:0;padding-left:20px;display:grid;gap:6px}
+.how .btn{justify-content:center;min-height:42px}
+.status{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:7px}
+.status .dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.status.ok .dot{background:var(--ok)}
 .sep{width:1px;height:22px;background:var(--line);margin:0 4px}
 .btn{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:6px 11px;min-height:34px;display:inline-flex;align-items:center;gap:6px}
 .btn:hover{border-color:var(--muted)}
@@ -90,6 +139,13 @@ button{cursor:pointer}
 .keys dt{font-family:var(--mono);color:var(--ink)}
 .keys dd{margin:0}
 .note{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin:0}
+.sheet-head{display:none;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:-6px;z-index:1;background:var(--panel);padding:12px 0 6px;margin-bottom:-4px}
+.sheet-head b{font-size:15px;font-weight:600}
+.grab{position:absolute;left:50%;top:2px;transform:translateX(-50%);width:38px;height:4px;border-radius:2px;background:var(--line)}
+.quick{display:none;flex-direction:column;gap:6px}
+.quick>span{font-size:11px;font-family:var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.qrow{display:flex;gap:6px}
+.qrow .btn{flex:1 1 0;width:auto;min-width:0;padding:0}
 
 #toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);
   background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:6px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;max-width:calc(100% - 32px)}
@@ -98,24 +154,73 @@ button{cursor:pointer}
 
 @media (max-width:980px){
   .app{grid-template-columns:minmax(0,1fr)}
-  .palette .list{flex-direction:row;overflow-x:auto;padding-bottom:4px}
+  .palette .list{flex-direction:row;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
   .blk{width:auto;flex:none}
-  .insp{position:static}
   .scroller{max-height:none}
+  /* Eigenschaften als Bottom-Sheet */
+  .insp{position:fixed;left:0;right:0;top:auto;bottom:var(--kb,0px);z-index:30;max-height:min(58vh,520px);overflow:auto;overscroll-behavior:contain;
+    border-radius:16px 16px 0 0;border-width:1px 0 0;
+    padding:6px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+    box-shadow:0 -10px 30px rgba(0,0,0,.18);transform:translateY(105%);visibility:hidden;
+    transition:transform .24s cubic-bezier(.2,.8,.2,1),visibility 0s linear .24s}
+  body.sheet .insp{transform:none;visibility:visible;transition:transform .24s cubic-bezier(.2,.8,.2,1)}
+  body.sheet .app{padding-bottom:calc(min(58vh,520px) + 16px)}
+  .insp>h2,.insp .type{display:none}
+  .sheet-head,.quick{display:flex}
 }
+@media (max-width:700px){
+  .bar{gap:8px 10px;padding-bottom:8px}
+  .brand{order:1;flex:1 1 auto}
+  .brand small{display:none}
+  .hist{order:2}
+  .hist .sep{display:none}
+  .actions{order:3;flex:1 1 100%;flex-wrap:nowrap}
+  .actions .sep,.desk{display:none}
+  .mob{display:flex}
+  .actions .btn{flex:1 1 auto;justify-content:center;padding:6px 8px;min-height:40px;white-space:nowrap}
+  .expwrap{flex:1 1 auto}
+  .expwrap .btn{width:100%}
+  .btn.icon{width:40px;min-height:40px}
+  .app{gap:12px;padding-block:12px}
+  .palette{padding:10px 10px 8px}
+  .palette h2{margin-bottom:8px}
+  .blk{padding:8px 10px;border-color:var(--line);background:var(--bg)}
+  .blk i{display:none}
+  .docbar label:first-child{flex:1 1 100%}
+  #tTitle{width:100%}
+  .scroller{padding:12px;min-height:200px}
+}
+@media (pointer:coarse){
+  .docbar input,.field textarea,.field input{font-size:16px}
+  .btn,.blk{min-height:40px}
+}
+@media (prefers-reduced-motion:reduce){.insp,body.sheet .insp{transition:none}.pwa.can{animation:none}}
 </style>
 
 <header class="bar">
-  <div class="brand">Struktogramm <small>DIN 66261</small></div>
+  <div class="brand"><span>Struktogramm</span><small>DIN 66261</small>
+    <button class="pwa" id="bPwa" type="button" aria-haspopup="dialog" title="Als App installieren und offline nutzen"><span class="dot" aria-hidden="true"></span><span id="pwaTxt">App · offline</span></button></div>
   <div class="actions">
     <button class="btn" id="bNew">Neu</button>
     <button class="btn" id="bOpen">Öffnen</button>
     <button class="btn" id="bSave" title="Als .nsd.json speichern">Speichern</button>
     <span class="sep"></span>
-    <button class="btn primary" id="bPdf" title="Als PDF exportieren (A4)">PDF exportieren</button>
-    <button class="btn" id="bDocx" title="Als Word-Dokument (.docx) exportieren">Word</button>
-    <button class="btn" id="bSvg" title="Als Vektorgrafik (.svg) exportieren">SVG</button>
-    <button class="btn" id="bPng" title="Als Bild (.png) exportieren">PNG</button>
+    <button class="btn primary desk" id="bPdf" title="Als PDF exportieren (A4)">PDF exportieren</button>
+    <button class="btn desk" id="bDocx" title="Als Word-Dokument (.docx) exportieren">Word</button>
+    <button class="btn desk" id="bSvg" title="Als Vektorgrafik (.svg) exportieren">SVG</button>
+    <button class="btn desk" id="bPng" title="Als Bild (.png) exportieren">PNG</button>
+    <div class="expwrap mob">
+      <button class="btn primary" id="bExp" aria-haspopup="menu" aria-expanded="false" aria-controls="expMenu">Export
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5"/></svg></button>
+      <div class="menu" id="expMenu" role="menu" hidden>
+        <button role="menuitem" data-exp="pdf"><b>PDF</b><i>A4, zum Drucken</i></button>
+        <button role="menuitem" data-exp="docx"><b>Word</b><i>.docx</i></button>
+        <button role="menuitem" data-exp="svg"><b>SVG</b><i>Vektorgrafik</i></button>
+        <button role="menuitem" data-exp="png"><b>PNG</b><i>Bild</i></button>
+      </div>
+    </div>
+  </div>
+  <div class="hist">
     <span class="sep"></span>
     <button class="btn icon" id="bUndo" aria-label="Rückgängig" title="Rückgängig">↶</button>
     <button class="btn icon" id="bRedo" aria-label="Wiederholen" title="Wiederholen">↷</button>
@@ -134,6 +239,7 @@ button{cursor:pointer}
       <label for="tTitle">Titel<input id="tTitle" type="text"></label>
       <label for="tWidth">Breite (px)<input id="tWidth" type="number" min="300" max="2400" step="20"></label>
       <div class="zoom">
+        <button class="btn icon" id="zFit" aria-label="An Breite anpassen" title="An Breite anpassen"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/></svg></button>
         <button class="btn icon" id="zOut" aria-label="Verkleinern">−</button>
         <output id="zVal">100 %</output>
         <button class="btn icon" id="zIn" aria-label="Vergrößern">+</button>
@@ -146,6 +252,23 @@ button{cursor:pointer}
   <aside class="panel insp" id="insp"></aside>
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
+
+<dialog class="dlg" id="pwaDlg" aria-labelledby="pwaH">
+  <div class="dlg-in">
+    <div class="dlg-hero">
+      <img src="icons/icon-192.png" width="56" height="56" alt="">
+      <div><h3 id="pwaH">Struktogramm als App</h3><p>Eigenes Icon, eigenes Fenster, ohne App Store.</p></div>
+    </div>
+    <ul class="feat">
+      <li><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2.5 7.5 5.5 10.5 11.5 3.5"/></svg>Funktioniert auch ohne Internet</li>
+      <li><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2.5 7.5 5.5 10.5 11.5 3.5"/></svg>Deine Diagramme bleiben auf deinem Gerät</li>
+      <li><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2.5 7.5 5.5 10.5 11.5 3.5"/></svg>Start direkt vom Home-Bildschirm oder Dock</li>
+    </ul>
+    <div class="how" id="pwaHow"></div>
+    <div class="status" id="pwaStatus"><span class="dot"></span><span></span></div>
+    <div class="row"><button class="btn" id="pwaClose">Schließen</button></div>
+  </div>
+</dialog>
 
 <script>
 /* ---------- Konstanten ---------- */
@@ -326,8 +449,19 @@ function render(withInsp){
   if(document.activeElement!==$('tWidth')) $('tWidth').value=doc.width;
   $('zVal').textContent=Math.round(zoom*100)+' %';
   $('bUndo').disabled=!undo.length; $('bRedo').disabled=!redo.length;
-  if(withInsp!==false) renderInsp();
+  document.body.classList.toggle('sheet',!!sel);
+  if(withInsp!==false){ renderInsp(); if(sel&&mqSheet.matches) requestAnimationFrame(revealSel); }
 }
+const mqSheet=matchMedia('(max-width:980px)');
+function revealSel(){ // markierten Block über dem Bottom-Sheet sichtbar halten
+  const h=sel&&paper.querySelector(`.hit[data-id="${sel}"]`); if(!h) return;
+  const r=h.getBoundingClientRect(), limit=innerHeight-insp.getBoundingClientRect().height-12, top=12;
+  if(r.bottom>limit) scrollBy({top:Math.min(r.top-top,r.bottom-limit),behavior:'smooth'});
+  else if(r.top<top) scrollBy({top:r.top-top,behavior:'smooth'});
+}
+const quick=lab=>`<div class="quick"><span>${lab}</span><div class="qrow">${Object.keys(TYPES).map(k=>
+  `<button class="btn icon" data-new="${k}" aria-label="${TYPES[k].name} ${lab.toLowerCase()}" title="${TYPES[k].name}"><svg width="24" height="19" viewBox="0 0 28 22" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">${ICON[k]}</svg></button>`).join('')}</div></div>`;
+const sheetHead=t=>`<div class="sheet-head"><span class="grab"></span><b>${t}</b><button class="btn" data-act="close">Fertig</button></div>`;
 
 function fld(k,label,val,multi){
   return `<label class="field"><span>${label}</span>${multi
@@ -341,13 +475,14 @@ function renderInsp(){
     <dl class="keys"><dt>Entf</dt><dd>Block löschen</dd><dt>⌘/Strg Z</dt><dd>Rückgängig</dd><dt>⌘/Strg ⇧ Z</dt><dd>Wiederholen</dd>
     <dt>⌘/Strg C X V</dt><dd>Kopieren, Ausschneiden, Einfügen</dd><dt>Alt ↑ ↓</dt><dd>Block verschieben</dd><dt>⌘/Strg S</dt><dd>Speichern</dd></dl>
     <p class="note">Alles läuft nur in deinem Browser, nichts wird hochgeladen. Der aktuelle Stand wird automatisch auf diesem Gerät gespeichert.</p>
-    <p class="note">Speichern erzeugt eine <b>.nsd.json</b>-Datei. Die kannst du später mit „Öffnen“ weiterbearbeiten. Export als PDF, Word, SVG oder PNG. Mehrzeiliger Text: Enter im Textfeld.</p>`;
+    <p class="note">Speichern erzeugt eine <b>.nsd.json</b>-Datei. Die kannst du später mit „Öffnen“ weiterbearbeiten. Export als PDF, Word, SVG oder PNG. Mehrzeiliger Text: Enter im Textfeld.</p>
+    <p class="note">Tipp: Über <b>App · offline</b> oben kannst du den Editor installieren. Dann läuft er auch ohne Internet.</p>`;
   } else if(e.slot){
-    h=`<h2>Leerer Zweig</h2><p class="hint">Wähle links einen Block, um ihn hier einzufügen. Leer lassen ist erlaubt (leerer Zweig nach DIN).</p>`+
-      (clip?`<div class="row"><button class="btn" data-act="paste">Einfügen</button></div>`:'');
+    h=sheetHead('Leerer Zweig')+`<h2>Leerer Zweig</h2><p class="hint">Wähle einen Block, um ihn hier einzufügen. Leer lassen ist erlaubt (leerer Zweig nach DIN).</p>`+
+      quick('Hier einfügen')+(clip?`<div class="row"><button class="btn" data-act="paste">Einfügen</button></div>`:'');
   } else {
     const n=e.node, i=e.arr.indexOf(n);
-    h=`<h2>Markierter Block</h2><p class="type">${NAME[n.type]}</p>`;
+    h=sheetHead(NAME[n.type])+`<h2>Markierter Block</h2><p class="type">${NAME[n.type]}</p>`;
     if(n.type==='action'||n.type==='call') h+=fld('text','Text',n.text,true);
     if(n.type==='if') h+=fld('cond','Bedingung',n.cond,true)+`<div class="row">${fld('yesLabel','Links',n.yesLabel)}${fld('noLabel','Rechts',n.noLabel)}</div>`+
       `<div class="row"><button class="btn" data-act="swap">Zweige tauschen</button></div>`;
@@ -359,7 +494,7 @@ function renderInsp(){
         <button class="btn icon" data-act="delcase" data-ci="${ci}" aria-label="Fall entfernen" ${n.cases.length<=2?'disabled':''}>×</button></div>`).join('')+
         `</div></div><div class="row"><button class="btn" data-act="addcase">Fall hinzufügen</button></div>`;
     }
-    h+=`<div class="row"><button class="btn" data-act="up" ${i===0?'disabled':''}>↑ Hoch</button><button class="btn" data-act="down" ${i===e.arr.length-1?'disabled':''}>↓ Runter</button></div>
+    h+=quick('Danach einfügen')+`<div class="row"><button class="btn" data-act="up" ${i===0?'disabled':''}>↑ Hoch</button><button class="btn" data-act="down" ${i===e.arr.length-1?'disabled':''}>↓ Runter</button></div>
     <div class="row"><button class="btn" data-act="copy">Kopieren</button><button class="btn" data-act="cut">Ausschneiden</button>${clip?'<button class="btn" data-act="paste">Danach einfügen</button>':''}</div>
     <div class="row"><button class="btn danger" data-act="del">Löschen</button></div>`;
   }
@@ -385,6 +520,7 @@ function act(a,extra){
   const e=sel&&index.get(sel); if(!e) return;
   const n=e.node, arr=e.arr, i=n?arr.indexOf(n):-1;
   switch(a){
+    case 'close': sel=null; break;
     case 'del': snap(); arr.splice(i,1); sel=arr.length?idOf(arr[Math.min(i,arr.length-1)]):idOf(arr); break;
     case 'up': if(i>0){ snap(); arr.splice(i,1); arr.splice(i-1,0,n); } break;
     case 'down': if(i<arr.length-1){ snap(); arr.splice(i,1); arr.splice(i+1,0,n); } break;
@@ -411,6 +547,11 @@ async function saveFile(name,data,mime){
     return;
   }
   const blob=data instanceof Blob?data:new Blob([data],{type:mime||'application/octet-stream'});
+  if(isIOS&&navigator.canShare){ // iPhone/iPad: Teilen-Menü („In Dateien sichern“) statt Download
+    try{ const file=new File([blob],name,{type:blob.type||mime||'application/octet-stream'});
+      if(navigator.canShare({files:[file]})){ await navigator.share({files:[file]}); return; } }
+    catch(e){ if(e&&e.name==='AbortError') return; }
+  }
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
   document.body.appendChild(a); a.click();
   setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1500);
@@ -518,7 +659,9 @@ $('palette').addEventListener('click',e=>{ const b=e.target.closest('[data-new]'
 
 /* ---------- Events ---------- */
 paper.addEventListener('click',e=>{ const h=e.target.closest('[data-id]'); sel=h?h.dataset.id:null; render(); });
-insp.addEventListener('click',e=>{ const b=e.target.closest('[data-act]'); if(b&&!b.disabled) act(b.dataset.act,b.dataset.ci); });
+insp.addEventListener('click',e=>{
+  const q=e.target.closest('[data-new]'); if(q){ insert(TYPES[q.dataset.new].make()); return; }
+  const b=e.target.closest('[data-act]'); if(b&&!b.disabled) act(b.dataset.act,b.dataset.ci); });
 insp.addEventListener('focusin',e=>{ if(e.target.matches('[data-k],[data-case]')&&!editSnap){ snap(); editSnap=true; } });
 insp.addEventListener('focusout',()=>{ editSnap=false; $('bUndo').disabled=!undo.length; });
 insp.addEventListener('input',e=>{
@@ -531,6 +674,12 @@ $('tTitle').addEventListener('focus',()=>snap());
 $('tTitle').addEventListener('input',e=>{ doc.title=e.target.value; renderPaper(); });
 $('tWidth').addEventListener('focus',()=>snap());
 $('tWidth').addEventListener('change',e=>{ doc.width=Math.min(2400,Math.max(300,+e.target.value||720)); render(false); });
+function fitZoom(max){
+  const sc=document.querySelector('.scroller'), cs=getComputedStyle(sc);
+  const avail=sc.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-2;
+  zoom=Math.max(0.3,Math.min(max||2,Math.floor(avail/layout().W*100)/100)); render(false);
+}
+$('zFit').onclick=()=>fitZoom(2);
 $('zIn').onclick=()=>{ zoom=Math.min(3,+(zoom+0.1).toFixed(2)); render(false); };
 $('zOut').onclick=()=>{ zoom=Math.max(0.3,+(zoom-0.1).toFixed(2)); render(false); };
 $('bNew').onclick=()=>{ snap(); doc={title:'Neues Struktogramm',width:720,body:[]}; sel=null; render(); toast('Neues Blatt. Mit ↶ zurück zum vorherigen.'); };
@@ -542,6 +691,17 @@ $('bSvg').onclick=exportSvg;
 $('bDocx').onclick=exportDocx;
 $('bPng').onclick=exportPng;
 $('bUndo').onclick=doUndo; $('bRedo').onclick=doRedo;
+
+/* Export-Menü (Handy) */
+const EXP={pdf:exportPdf,docx:exportDocx,svg:exportSvg,png:exportPng};
+function expMenu(open){ $('expMenu').hidden=!open; $('bExp').setAttribute('aria-expanded',open); if(open) $('expMenu').querySelector('button').focus(); }
+$('bExp').onclick=e=>{ e.stopPropagation(); expMenu($('expMenu').hidden); };
+$('expMenu').onclick=e=>{ const b=e.target.closest('[data-exp]'); if(b){ expMenu(false); EXP[b.dataset.exp](); } };
+document.addEventListener('click',e=>{ if(!$('expMenu').hidden&&!e.target.closest('.expwrap')) expMenu(false); });
+
+/* Bildschirmtastatur: Bottom-Sheet darüber halten */
+if(window.visualViewport){ const vv=visualViewport, kb=()=>document.documentElement.style.setProperty('--kb',Math.max(0,innerHeight-vv.height-vv.offsetTop)+'px');
+  vv.addEventListener('resize',kb); vv.addEventListener('scroll',kb); }
 
 document.addEventListener('keydown',e=>{
   const typing=e.target.matches('input,textarea'), mod=e.metaKey||e.ctrlKey, k=e.key.toLowerCase();
@@ -555,11 +715,49 @@ document.addEventListener('keydown',e=>{
   else if(e.altKey&&e.key==='ArrowUp'){ e.preventDefault(); act('up'); }
   else if(e.altKey&&e.key==='ArrowDown'){ e.preventDefault(); act('down'); }
   else if(e.key==='Delete'||e.key==='Backspace'){ const en=sel&&index.get(sel); if(en&&en.node){ e.preventDefault(); act('del'); } }
-  else if(e.key==='Escape'){ sel=null; render(); }
+  else if(e.key==='Escape'){ if(!$('expMenu').hidden){ expMenu(false); $('bExp').focus(); return; } sel=null; render(); }
 });
+
+/* ---------- App (PWA) ---------- */
+const UA=navigator.userAgent;
+const isIOS=/iPad|iPhone|iPod/.test(UA)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const isMacSafari=!isIOS&&/Macintosh/.test(UA)&&/Safari\//.test(UA)&&!/Chrome|Chromium|Edg|Firefox|OPR/.test(UA);
+const isFirefoxDesk=/Firefox\//.test(UA)&&!/Android/.test(UA);
+const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+let installEvt=null, swReady=false;
+const SHARE_ICON='<svg width="14" height="16" viewBox="0 0 14 16" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px" aria-hidden="true"><path d="M7 1v9M4 4l3-3 3 3M3.5 7H2v8h10V7h-1.5"/></svg>';
+function pwaUI(){
+  const b=$('bPwa'), can=!!installEvt&&!standalone();
+  b.classList.toggle('ready',swReady); b.classList.toggle('can',can);
+  $('pwaTxt').textContent=standalone()?'App ✓':can?'App installieren':'App · offline';
+  const st=$('pwaStatus'); st.classList.toggle('ok',swReady);
+  st.lastElementChild.textContent=swReady?'Offline bereit: Editor ist auf diesem Gerät gespeichert.':'Offline-Daten werden vorbereitet …';
+  let h;
+  if(standalone()) h='<p>Läuft bereits als App. Alles funktioniert auch offline.</p>';
+  else if(installEvt) h='<button class="btn primary" id="bInstall">Jetzt installieren</button>';
+  else if(isIOS) h=`<ol><li>Tippe auf <b>Teilen</b> ${SHARE_ICON}</li><li>Wähle <b>Zum Home-Bildschirm</b></li><li>Tippe auf <b>Hinzufügen</b></li></ol>`;
+  else if(isMacSafari) h='<ol><li>Menü <b>Ablage</b> öffnen</li><li><b>Zum Dock hinzufügen …</b> wählen</li></ol>';
+  else if(isFirefoxDesk) h='<p>Firefox am Computer kann keine Web-Apps installieren. Offline klappt es trotzdem in diesem Browser. Zum Installieren Chrome, Edge oder Safari nehmen.</p>';
+  else h='<p>Im Browsermenü <b>App installieren</b> oder <b>Zum Startbildschirm hinzufügen</b> wählen. In Chrome und Edge am Computer gibt es dafür auch ein Symbol rechts in der Adressleiste.</p>';
+  $('pwaHow').innerHTML=h;
+}
+$('bPwa').onclick=()=>{ pwaUI(); $('pwaDlg').showModal(); };
+$('pwaClose').onclick=()=>$('pwaDlg').close();
+$('pwaDlg').addEventListener('click',async e=>{
+  if(e.target===$('pwaDlg')) $('pwaDlg').close(); // Klick auf den Hintergrund
+  if(e.target.closest('#bInstall')&&installEvt){ const ev=installEvt; ev.prompt(); try{ await ev.userChoice; }catch(_){} installEvt=null; $('pwaDlg').close(); pwaUI(); }
+});
+addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); installEvt=e; pwaUI(); });
+addEventListener('appinstalled',()=>{ installEvt=null; pwaUI(); toast('Als App installiert'); });
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
+  navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready).then(()=>{ swReady=true; pwaUI(); }).catch(()=>{});
+}
+if('launchQueue' in window) launchQueue.setConsumer(async p=>{ if(p.files&&p.files.length) openFile(await p.files[0].getFile()); });
 
 /* ---------- Start ---------- */
 try{ const s=localStorage.getItem(STORE); doc=s?normDoc(JSON.parse(s)):sample(); }catch(e){ doc=sample(); }
-render();
-if(document.fonts&&document.fonts.load) document.fonts.load('14px Arimo').then(()=>render(false)).catch(()=>{});
+render(); pwaUI();
+const fitIfNarrow=()=>{ if(matchMedia('(max-width:700px)').matches) fitZoom(1); };
+fitIfNarrow();
+if(document.fonts&&document.fonts.load) document.fonts.load('14px Arimo').then(()=>{ render(false); fitIfNarrow(); }).catch(()=>{});
 </script>
