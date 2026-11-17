@@ -106,6 +106,8 @@ button{cursor:pointer;touch-action:manipulation}
 .blk span{display:flex;flex-direction:column;min-width:0}
 .blk b{font-weight:500}
 .blk i{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.blk .s{display:none}
+.menu hr{border:0;border-top:1px solid var(--line);margin:4px 6px}
 
 .stage{min-width:0;display:flex;flex-direction:column;gap:10px}
 .docbar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:end}
@@ -157,39 +159,56 @@ button{cursor:pointer;touch-action:manipulation}
   .palette .list{flex-direction:row;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
   .blk{width:auto;flex:none}
   .scroller{max-height:none}
+  /* App-Oberfläche: Seite scrollt nicht, nur die Zeichenfläche */
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{display:flex;flex-direction:column;height:100dvh;touch-action:pan-x pan-y}
+  .bar{flex:none;flex-wrap:nowrap;gap:6px;padding-bottom:8px}
+  .brand{order:1;flex:1 1 auto;align-items:center}
+  .brand>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .brand small{display:none}
+  .hist{order:2}
+  .actions{order:3;flex:none}
+  .hist .sep,.actions>.btn,.actions>.sep{display:none}
+  .mob{display:flex}
+  .btn.icon{width:40px;min-height:40px}
+  .app{flex:1;min-height:0;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0}
+  .stage{order:1;flex:1;min-height:0;min-width:0;position:relative;gap:0}
+  .palette{min-width:0}
+  .docbar{display:contents}
+  .docbar label,.hint-line{display:none}
+  .zoom{position:absolute;right:max(12px,env(safe-area-inset-right,0px));bottom:12px;z-index:5;margin:0;gap:2px;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:3px;box-shadow:0 4px 18px rgba(0,0,0,.2)}
+  .zoom .btn{border-color:transparent;background:none}
+  .scroller{flex:1;min-height:0;max-height:none;border:0;border-radius:0;display:flex;
+    padding:16px max(16px,env(safe-area-inset-right,0px)) 76px max(16px,env(safe-area-inset-left,0px));
+    touch-action:pan-x pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  #paper{margin:auto;flex:none}
+  body.sheet .scroller{padding-bottom:calc(min(55dvh,520px) + 24px)}
+  body.sheet .zoom{display:none}
+  /* Blockleiste unten (wie eine Tab-Bar) */
+  .palette{order:2;flex:none;border-radius:0;border-width:1px 0 0;
+    padding:4px max(6px,env(safe-area-inset-right,0px)) calc(4px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px))}
+  .palette h2{display:none}
+  .palette .list{flex-direction:row;overflow-x:auto;gap:2px;scrollbar-width:none}
+  .palette .list::-webkit-scrollbar{display:none}
+  .blk{flex:1 0 auto;min-width:50px;width:auto;flex-direction:column;justify-content:center;gap:3px;padding:6px 4px;border:0;background:none;border-radius:8px}
+  .blk:hover{border-color:transparent}
+  .blk:active{background:var(--accent-soft)}
+  .blk span{display:none}
+  .blk .s{display:block;font-size:10.5px;line-height:1.1;color:var(--muted);white-space:nowrap}
+  #toast{bottom:calc(76px + env(safe-area-inset-bottom,0px))}
   /* Eigenschaften als Bottom-Sheet */
-  .insp{position:fixed;left:0;right:0;top:auto;bottom:var(--kb,0px);z-index:30;max-height:min(58vh,520px);overflow:auto;overscroll-behavior:contain;
+  .insp{position:fixed;left:0;right:0;top:auto;bottom:var(--kb,0px);z-index:30;
+    max-height:min(55dvh,520px,calc(var(--vvh,100dvh) - 64px));overflow:auto;overscroll-behavior:contain;touch-action:pan-y;
     border-radius:16px 16px 0 0;border-width:1px 0 0;
     padding:6px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
-    box-shadow:0 -10px 30px rgba(0,0,0,.18);transform:translateY(105%);visibility:hidden;
+    box-shadow:0 -10px 30px rgba(0,0,0,.2);transform:translateY(105%);visibility:hidden;
     transition:transform .24s cubic-bezier(.2,.8,.2,1),visibility 0s linear .24s}
   body.sheet .insp{transform:none;visibility:visible;transition:transform .24s cubic-bezier(.2,.8,.2,1)}
-  body.sheet .app{padding-bottom:calc(min(58vh,520px) + 16px)}
   .insp>h2,.insp .type{display:none}
   .sheet-head,.quick{display:flex}
 }
-@media (max-width:700px){
-  .bar{gap:8px 10px;padding-bottom:8px}
-  .brand{order:1;flex:1 1 auto}
-  .brand small{display:none}
-  .hist{order:2}
-  .hist .sep{display:none}
-  .actions{order:3;flex:1 1 100%;flex-wrap:nowrap}
-  .actions .sep,.desk{display:none}
-  .mob{display:flex}
-  .actions .btn{flex:1 1 auto;justify-content:center;padding:6px 8px;min-height:40px;white-space:nowrap}
-  .expwrap{flex:1 1 auto}
-  .expwrap .btn{width:100%}
-  .btn.icon{width:40px;min-height:40px}
-  .app{gap:12px;padding-block:12px}
-  .palette{padding:10px 10px 8px}
-  .palette h2{margin-bottom:8px}
-  .blk{padding:8px 10px;border-color:var(--line);background:var(--bg)}
-  .blk i{display:none}
-  .docbar label:first-child{flex:1 1 100%}
-  #tTitle{width:100%}
-  .scroller{padding:12px;min-height:200px}
-}
+@media (max-width:420px){ .pwa .x{display:none} .pwa{padding:2px 10px 2px 8px} }
 @media (pointer:coarse){
   .docbar input,.field textarea,.field input{font-size:16px}
   .btn,.blk{min-height:40px}
@@ -199,7 +218,7 @@ button{cursor:pointer;touch-action:manipulation}
 
 <header class="bar">
   <div class="brand"><span>Struktogramm</span><small>DIN 66261</small>
-    <button class="pwa" id="bPwa" type="button" aria-haspopup="dialog" title="Als App installieren und offline nutzen"><span class="dot" aria-hidden="true"></span><span id="pwaTxt">App · offline</span></button></div>
+    <button class="pwa" id="bPwa" type="button" aria-haspopup="dialog" title="Als App installieren und offline nutzen"><span class="dot" aria-hidden="true"></span><span id="pwaTxt">App<span class="x"> · offline</span></span></button></div>
   <div class="actions">
     <button class="btn" id="bNew">Neu</button>
     <button class="btn" id="bOpen">Öffnen</button>
@@ -210,9 +229,14 @@ button{cursor:pointer;touch-action:manipulation}
     <button class="btn desk" id="bSvg" title="Als Vektorgrafik (.svg) exportieren">SVG</button>
     <button class="btn desk" id="bPng" title="Als Bild (.png) exportieren">PNG</button>
     <div class="expwrap mob">
-      <button class="btn primary" id="bExp" aria-haspopup="menu" aria-expanded="false" aria-controls="expMenu">Export
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5"/></svg></button>
+      <button class="btn icon primary" id="bExp" aria-haspopup="menu" aria-expanded="false" aria-controls="expMenu" aria-label="Menü: Datei und Export" title="Datei und Export">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true"><circle cx="3.5" cy="9" r="1.6"/><circle cx="9" cy="9" r="1.6"/><circle cx="14.5" cy="9" r="1.6"/></svg></button>
       <div class="menu" id="expMenu" role="menu" hidden>
+        <button role="menuitem" data-exp="new"><b>Neu</b><i>leeres Blatt</i></button>
+        <button role="menuitem" data-exp="open"><b>Öffnen …</b><i>.nsd.json</i></button>
+        <button role="menuitem" data-exp="save"><b>Speichern</b><i>.nsd.json</i></button>
+        <button role="menuitem" data-exp="doc"><b>Titel &amp; Breite</b><i>Dokument</i></button>
+        <hr>
         <button role="menuitem" data-exp="pdf"><b>PDF</b><i>A4, zum Drucken</i></button>
         <button role="menuitem" data-exp="docx"><b>Word</b><i>.docx</i></button>
         <button role="menuitem" data-exp="svg"><b>SVG</b><i>Vektorgrafik</i></button>
@@ -277,13 +301,13 @@ const DIAFONT='Arimo, Arial, Helvetica, sans-serif';
 const STORE='nsd-editor-autosave-v1';
 
 const TYPES={
-  action:{name:'Anweisung', c:'z. B. x = 5; printf()', make:()=>({type:'action',text:'Anweisung'})},
-  if:{name:'Verzweigung', c:'if … else', make:()=>({type:'if',cond:'Bedingung?',yesLabel:'wahr',noLabel:'falsch',yes:[],no:[]})},
-  switch:{name:'Fallauswahl', c:'switch … case', make:()=>({type:'switch',expr:'Ausdruck?',cases:[{label:'1',body:[]},{label:'2',body:[]},{label:'sonst',body:[]}]})},
-  while:{name:'Kopfgesteuerte Schleife', c:'while (…)', make:()=>({type:'while',cond:'solange Bedingung',body:[]})},
-  for:{name:'Zählschleife', c:'for (…;…;…)', make:()=>({type:'while',cond:'für i = 0 bis n − 1',body:[]})},
-  until:{name:'Fußgesteuerte Schleife', c:'do … while (…)', make:()=>({type:'until',cond:'solange Bedingung',body:[]})},
-  call:{name:'Unterprogramm', c:'funktion();', make:()=>({type:'call',text:'Funktion()'})},
+  action:{name:'Anweisung', s:'Anweisung', c:'z. B. x = 5; printf()', make:()=>({type:'action',text:'Anweisung'})},
+  if:{name:'Verzweigung', s:'if / else', c:'if … else', make:()=>({type:'if',cond:'Bedingung?',yesLabel:'wahr',noLabel:'falsch',yes:[],no:[]})},
+  switch:{name:'Fallauswahl', s:'switch', c:'switch … case', make:()=>({type:'switch',expr:'Ausdruck?',cases:[{label:'1',body:[]},{label:'2',body:[]},{label:'sonst',body:[]}]})},
+  while:{name:'Kopfgesteuerte Schleife', s:'while', c:'while (…)', make:()=>({type:'while',cond:'solange Bedingung',body:[]})},
+  for:{name:'Zählschleife', s:'for', c:'for (…;…;…)', make:()=>({type:'while',cond:'für i = 0 bis n − 1',body:[]})},
+  until:{name:'Fußgesteuerte Schleife', s:'do-while', c:'do … while (…)', make:()=>({type:'until',cond:'solange Bedingung',body:[]})},
+  call:{name:'Unterprogramm', s:'Aufruf', c:'funktion();', make:()=>({type:'call',text:'Funktion()'})},
 };
 const NAME={action:'Anweisung',if:'Verzweigung',switch:'Fallauswahl',while:'Kopfgesteuerte Schleife',until:'Fußgesteuerte Schleife',call:'Unterprogrammaufruf'};
 const ICON={
@@ -409,6 +433,8 @@ function layout(){
   const W=Math.max(smw(doc.body),doc.width||720, tw(doc.title,true,TFS)), H=sh(doc.body,W);
   const x0=FRAME, y0=FRAME+TITLEH;
   o.title={s:doc.title,x:FRAME,y:FRAME+20};
+  if(sel==='doc') o.fills.push([FRAME,FRAME,W,TITLEH-6]);
+  o.hits.push({id:'doc',x:FRAME,y:FRAME,w:W,h:TITLEH-6}); // Titel antippen → Titel & Breite
   ds(o,doc.body,x0,y0,W,H);
   o.W=W+2*FRAME; o.H=y0+H+FRAME; return o;
 }
@@ -436,7 +462,7 @@ const paper=$('paper'), insp=$('insp');
 function reindex(){
   index=new Map();
   const walk=arr=>{ index.set(idOf(arr),{arr,slot:true}); arr.forEach(n=>{ index.set(idOf(n),{node:n,arr}); children(n).forEach(walk); }); };
-  walk(doc.body);
+  walk(doc.body); index.set('doc',{doc:true});
 }
 function renderPaper(){
   paper.innerHTML=toSVG(layout(),true);
@@ -453,11 +479,14 @@ function render(withInsp){
   if(withInsp!==false){ renderInsp(); if(sel&&mqSheet.matches) requestAnimationFrame(revealSel); }
 }
 const mqSheet=matchMedia('(max-width:980px)');
-function revealSel(){ // markierten Block über dem Bottom-Sheet sichtbar halten
+const scroller=document.querySelector('.scroller');
+function revealSel(){ // markierten Block über dem Bottom-Sheet sichtbar halten (scrollt nur die Zeichenfläche)
   const h=sel&&paper.querySelector(`.hit[data-id="${sel}"]`); if(!h) return;
-  const r=h.getBoundingClientRect(), limit=innerHeight-insp.getBoundingClientRect().height-12, top=12;
-  if(r.bottom>limit) scrollBy({top:Math.min(r.top-top,r.bottom-limit),behavior:'smooth'});
-  else if(r.top<top) scrollBy({top:r.top-top,behavior:'smooth'});
+  const r=h.getBoundingClientRect(), s=scroller.getBoundingClientRect();
+  const top=s.top+12, bottom=Math.min(s.bottom,innerHeight-insp.getBoundingClientRect().height)-12;
+  let dy=0; if(r.bottom>bottom) dy=Math.min(r.top-top,r.bottom-bottom); else if(r.top<top) dy=r.top-top;
+  let dx=0; if(r.width<s.width-24){ if(r.right>s.right-12) dx=r.right-s.right+12; else if(r.left<s.left+12) dx=r.left-s.left-12; }
+  if(dx||dy) scroller.scrollBy({left:dx,top:dy,behavior:'smooth'});
 }
 const quick=lab=>`<div class="quick"><span>${lab}</span><div class="qrow">${Object.keys(TYPES).map(k=>
   `<button class="btn icon" data-new="${k}" aria-label="${TYPES[k].name} ${lab.toLowerCase()}" title="${TYPES[k].name}"><svg width="24" height="19" viewBox="0 0 28 22" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">${ICON[k]}</svg></button>`).join('')}</div></div>`;
@@ -477,6 +506,11 @@ function renderInsp(){
     <p class="note">Alles läuft nur in deinem Browser, nichts wird hochgeladen. Der aktuelle Stand wird automatisch auf diesem Gerät gespeichert.</p>
     <p class="note">Speichern erzeugt eine <b>.nsd.json</b>-Datei. Die kannst du später mit „Öffnen“ weiterbearbeiten. Export als PDF, Word, SVG oder PNG. Mehrzeiliger Text: Enter im Textfeld.</p>
     <p class="note">Tipp: Über <b>App · offline</b> oben kannst du den Editor installieren. Dann läuft er auch ohne Internet.</p>`;
+  } else if(e.doc){
+    h=sheetHead('Dokument')+`<h2>Dokument</h2>
+    <label class="field"><span>Titel</span><input type="text" data-doc="title" value="${esc(doc.title)}"></label>
+    <label class="field"><span>Breite (px)</span><input type="number" inputmode="numeric" data-doc="width" min="300" max="2400" step="20" value="${doc.width}"></label>
+    <p class="hint">Die Breite ist die Mindestbreite des Diagramms. Breite Inhalte machen es automatisch breiter.</p>`;
   } else if(e.slot){
     h=sheetHead('Leerer Zweig')+`<h2>Leerer Zweig</h2><p class="hint">Wähle einen Block, um ihn hier einzufügen. Leer lassen ist erlaubt (leerer Zweig nach DIN).</p>`+
       quick('Hier einfügen')+(clip?`<div class="row"><button class="btn" data-act="paste">Einfügen</button></div>`:'');
@@ -511,7 +545,7 @@ const clone=o=>JSON.parse(JSON.stringify(o));
 function insert(node){
   snap(); const e=sel&&index.get(sel);
   if(e&&e.slot) e.arr.push(node);
-  else if(e) e.arr.splice(e.arr.indexOf(e.node)+1,0,node);
+  else if(e&&e.node) e.arr.splice(e.arr.indexOf(e.node)+1,0,node);
   else doc.body.push(node);
   sel=idOf(node); render();
   if(matchMedia('(pointer:fine)').matches){ const f=insp.querySelector('textarea,input'); if(f){ f.focus(); f.select(); } }
@@ -519,6 +553,7 @@ function insert(node){
 function act(a,extra){
   const e=sel&&index.get(sel); if(!e) return;
   const n=e.node, arr=e.arr, i=n?arr.indexOf(n):-1;
+  if(!n&&a!=='close'&&!(a==='paste'&&e.slot)) return;
   switch(a){
     case 'close': sel=null; break;
     case 'del': snap(); arr.splice(i,1); sel=arr.length?idOf(arr[Math.min(i,arr.length-1)]):idOf(arr); break;
@@ -654,17 +689,20 @@ let tt; function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add(
 
 /* ---------- Palette ---------- */
 $('palette').innerHTML=Object.entries(TYPES).map(([k,t])=>
-  `<button class="blk" data-new="${k}"><svg width="28" height="22" viewBox="0 0 28 22" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true">${ICON[k]}</svg><span><b>${t.name}</b><i>${esc(t.c)}</i></span></button>`).join('');
+  `<button class="blk" data-new="${k}"><svg width="28" height="22" viewBox="0 0 28 22" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true">${ICON[k]}</svg><span><b>${t.name}</b><i>${esc(t.c)}</i></span><small class="s">${esc(t.s)}</small></button>`).join('');
+$('palette').querySelectorAll('.blk').forEach(b=>b.setAttribute('aria-label',TYPES[b.dataset.new].name+' einfügen'));
 $('palette').addEventListener('click',e=>{ const b=e.target.closest('[data-new]'); if(b) insert(TYPES[b.dataset.new].make()); });
 
 /* ---------- Events ---------- */
-paper.addEventListener('click',e=>{ const h=e.target.closest('[data-id]'); sel=h?h.dataset.id:null; render(); });
+paper.addEventListener('click',e=>{ if(Date.now()-suppressTap<350) return; const h=e.target.closest('[data-id]'); sel=h?h.dataset.id:null; render(); });
 insp.addEventListener('click',e=>{
   const q=e.target.closest('[data-new]'); if(q){ insert(TYPES[q.dataset.new].make()); return; }
   const b=e.target.closest('[data-act]'); if(b&&!b.disabled) act(b.dataset.act,b.dataset.ci); });
-insp.addEventListener('focusin',e=>{ if(e.target.matches('[data-k],[data-case]')&&!editSnap){ snap(); editSnap=true; } });
+insp.addEventListener('focusin',e=>{ if(e.target.matches('[data-k],[data-case],[data-doc]')&&!editSnap){ snap(); editSnap=true; } });
 insp.addEventListener('focusout',()=>{ editSnap=false; $('bUndo').disabled=!undo.length; });
+insp.addEventListener('change',e=>{ if(e.target.dataset.doc==='width'){ doc.width=Math.min(2400,Math.max(300,+e.target.value||720)); e.target.value=doc.width; render(false); } });
 insp.addEventListener('input',e=>{
+  if(e.target.dataset.doc==='title'){ doc.title=e.target.value; renderPaper(); return; }
   const en=sel&&index.get(sel); if(!en||!en.node) return; const t=e.target;
   if(t.dataset.k) en.node[t.dataset.k]=t.value;
   else if(t.dataset.case!=null) en.node.cases[+t.dataset.case].label=t.value;
@@ -674,14 +712,41 @@ $('tTitle').addEventListener('focus',()=>snap());
 $('tTitle').addEventListener('input',e=>{ doc.title=e.target.value; renderPaper(); });
 $('tWidth').addEventListener('focus',()=>snap());
 $('tWidth').addEventListener('change',e=>{ doc.width=Math.min(2400,Math.max(300,+e.target.value||720)); render(false); });
+/* ---------- Zoom: Knöpfe, Pinch (2 Finger), Strg/⌘ + Mausrad bzw. Trackpad ---------- */
+const ZMIN=0.25, ZMAX=3;
+function zoomAt(z,cx,cy){ // auf z zoomen, Punkt (cx,cy) im Fenster bleibt unter dem Finger/Mauszeiger
+  z=Math.max(ZMIN,Math.min(ZMAX,z)); if(Math.abs(z-zoom)<0.001) return;
+  const pr=paper.getBoundingClientRect(), u=(cx-pr.left)/zoom, v=(cy-pr.top)/zoom;
+  zoom=z; paper.innerHTML=toSVG(layout(),true); $('zVal').textContent=Math.round(zoom*100)+' %';
+  const nr=paper.getBoundingClientRect();
+  scroller.scrollLeft+=nr.left+u*zoom-cx; scroller.scrollTop+=nr.top+v*zoom-cy;
+}
+const zoomMid=f=>{ const s=scroller.getBoundingClientRect(); zoomAt(f(zoom),s.left+s.width/2,s.top+s.height/2); };
 function fitZoom(max){
-  const sc=document.querySelector('.scroller'), cs=getComputedStyle(sc);
-  const avail=sc.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-2;
-  zoom=Math.max(0.3,Math.min(max||2,Math.floor(avail/layout().W*100)/100)); render(false);
+  const cs=getComputedStyle(scroller);
+  const avail=scroller.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-2;
+  zoom=Math.max(ZMIN,Math.min(max||2,Math.floor(avail/layout().W*100)/100)); render(false);
+  scroller.scrollLeft=0; scroller.scrollTop=0;
 }
 $('zFit').onclick=()=>fitZoom(2);
-$('zIn').onclick=()=>{ zoom=Math.min(3,+(zoom+0.1).toFixed(2)); render(false); };
-$('zOut').onclick=()=>{ zoom=Math.max(0.3,+(zoom-0.1).toFixed(2)); render(false); };
+$('zIn').onclick=()=>zoomMid(z=>+(z*1.2).toFixed(2));
+$('zOut').onclick=()=>zoomMid(z=>+(z/1.2).toFixed(2));
+scroller.addEventListener('wheel',e=>{ if(!(e.ctrlKey||e.metaKey)) return; e.preventDefault();
+  zoomAt(zoom*Math.exp(-Math.max(-25,Math.min(25,e.deltaY))*0.01),e.clientX,e.clientY); },{passive:false}); // Mausrad: ±22 % pro Raste, Trackpad: stufenlos
+let pinch=null, pinchRaf=0;
+const tdist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+const tmid=t=>[(t[0].clientX+t[1].clientX)/2,(t[0].clientY+t[1].clientY)/2];
+scroller.addEventListener('touchstart',e=>{ if(e.touches.length===2){ const [x,y]=tmid(e.touches); pinch={d:tdist(e.touches),z:zoom,x,y}; } },{passive:true});
+scroller.addEventListener('touchmove',e=>{
+  if(!pinch||e.touches.length!==2) return; e.preventDefault();
+  const d=tdist(e.touches), [x,y]=tmid(e.touches), z=pinch.z*d/pinch.d;
+  scroller.scrollLeft-=x-pinch.x; scroller.scrollTop-=y-pinch.y; pinch.x=x; pinch.y=y; // mit zwei Fingern auch verschieben
+  cancelAnimationFrame(pinchRaf); pinchRaf=requestAnimationFrame(()=>zoomAt(z,x,y));
+},{passive:false});
+scroller.addEventListener('touchend',e=>{ if(e.touches.length<2&&pinch){ pinch=null; suppressTap=Date.now(); } });
+let suppressTap=0;
+['gesturestart','gesturechange'].forEach(t=>document.addEventListener(t,e=>e.preventDefault())); // iOS: Seiten-Zoom aus
+addEventListener('orientationchange',()=>setTimeout(()=>fitIfNarrow(),300));
 $('bNew').onclick=()=>{ snap(); doc={title:'Neues Struktogramm',width:720,body:[]}; sel=null; render(); toast('Neues Blatt. Mit ↶ zurück zum vorherigen.'); };
 $('bOpen').onclick=()=>$('fileIn').click();
 $('fileIn').onchange=e=>{ const f=e.target.files[0]; if(f) openFile(f); e.target.value=''; };
@@ -693,14 +758,17 @@ $('bPng').onclick=exportPng;
 $('bUndo').onclick=doUndo; $('bRedo').onclick=doRedo;
 
 /* Export-Menü (Handy) */
-const EXP={pdf:exportPdf,docx:exportDocx,svg:exportSvg,png:exportPng};
+const EXP={pdf:exportPdf,docx:exportDocx,svg:exportSvg,png:exportPng,save:saveNsd,
+  new:()=>$('bNew').click(), open:()=>$('fileIn').click(), doc:()=>{ sel='doc'; render(); }};
 function expMenu(open){ $('expMenu').hidden=!open; $('bExp').setAttribute('aria-expanded',open); if(open) $('expMenu').querySelector('button').focus(); }
 $('bExp').onclick=e=>{ e.stopPropagation(); expMenu($('expMenu').hidden); };
 $('expMenu').onclick=e=>{ const b=e.target.closest('[data-exp]'); if(b){ expMenu(false); EXP[b.dataset.exp](); } };
 document.addEventListener('click',e=>{ if(!$('expMenu').hidden&&!e.target.closest('.expwrap')) expMenu(false); });
 
 /* Bildschirmtastatur: Bottom-Sheet darüber halten */
-if(window.visualViewport){ const vv=visualViewport, kb=()=>document.documentElement.style.setProperty('--kb',Math.max(0,innerHeight-vv.height-vv.offsetTop)+'px');
+if(window.visualViewport){ const vv=visualViewport, rs=document.documentElement.style, kb=()=>{
+    rs.setProperty('--kb',Math.max(0,innerHeight-vv.height-vv.offsetTop)+'px'); rs.setProperty('--vvh',vv.height+'px');
+    if(vv.offsetTop>0&&mqSheet.matches) scrollTo(0,0); }; // iOS schiebt die Seite beim Tippen hoch
   vv.addEventListener('resize',kb); vv.addEventListener('scroll',kb); }
 
 document.addEventListener('keydown',e=>{
@@ -729,7 +797,7 @@ const SHARE_ICON='<svg width="14" height="16" viewBox="0 0 14 16" fill="none" st
 function pwaUI(){
   const b=$('bPwa'), can=!!installEvt&&!standalone();
   b.classList.toggle('ready',swReady); b.classList.toggle('can',can);
-  $('pwaTxt').textContent=standalone()?'App ✓':can?'App installieren':'App · offline';
+  $('pwaTxt').innerHTML=standalone()?'App ✓':can?'App<span class="x"> installieren</span>':'App<span class="x"> · offline</span>';
   const st=$('pwaStatus'); st.classList.toggle('ok',swReady);
   st.lastElementChild.textContent=swReady?'Offline bereit: Editor ist auf diesem Gerät gespeichert.':'Offline-Daten werden vorbereitet …';
   let h;
@@ -757,7 +825,7 @@ if('launchQueue' in window) launchQueue.setConsumer(async p=>{ if(p.files&&p.fil
 /* ---------- Start ---------- */
 try{ const s=localStorage.getItem(STORE); doc=s?normDoc(JSON.parse(s)):sample(); }catch(e){ doc=sample(); }
 render(); pwaUI();
-const fitIfNarrow=()=>{ if(matchMedia('(max-width:700px)').matches) fitZoom(1); };
+function fitIfNarrow(){ if(mqSheet.matches) fitZoom(1); }
 fitIfNarrow();
 if(document.fonts&&document.fonts.load) document.fonts.load('14px Arimo').then(()=>{ render(false); fitIfNarrow(); }).catch(()=>{});
 </script>

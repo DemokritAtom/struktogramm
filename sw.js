@@ -1,6 +1,6 @@
 /* Service Worker: macht den Editor offline nutzbar.
    Bei Änderungen an den Dateien unten VERSION hochzählen. */
-const VERSION = 'struktogramm-v1';
+const VERSION = 'struktogramm-v2';
 const CORE = [
   './',
   './index.html',
