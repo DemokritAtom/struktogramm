@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="de">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8">
+<title>Struktogramm-Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Arimo:wght@400;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* Layout: Werkbank – Werkzeugleiste oben, Blockpalette links, weißes Blatt in der Mitte, Eigenschaften rechts; schmal: alles untereinander */
+:root{
+  --bg:#e9ecf1; --panel:#f7f8fa; --ink:#1a1e26; --muted:#5b6372; --line:#d2d7df;
+  --accent:#1d4ed8; --accent-ink:#ffffff; --accent-soft:#e2e9fb; --danger:#b42318;
+  --paper:#ffffff; --hover:rgba(29,78,216,.07); --grid:#d9dde4;
+  --ui:"IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --dia:Arimo, Arial, Helvetica, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12151b; --panel:#1a1e26; --ink:#e6e9ef; --muted:#9aa3b2; --line:#2c323d;
+  --accent:#7c9dff; --accent-ink:#0e1320; --accent-soft:#1f2a45; --danger:#ff8a80;
+  --paper:#ffffff; --hover:rgba(29,78,216,.08); --grid:#1f242d; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#12151b; --panel:#1a1e26; --ink:#e6e9ef; --muted:#9aa3b2; --line:#2c323d;
+  --accent:#7c9dff; --accent-ink:#0e1320; --accent-soft:#1f2a45; --danger:#ff8a80;
+  --paper:#ffffff; --hover:rgba(29,78,216,.08); --grid:#1f242d; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:14px;line-height:1.45}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:var(--panel);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:8px;font-weight:600;font-size:16px;margin-right:auto}
+.brand small{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--muted);font-weight:400}
+.actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.sep{width:1px;height:22px;background:var(--line);margin:0 4px}
+.btn{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:6px 11px;min-height:34px;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:500}
+.btn.icon{width:34px;padding:0;justify-content:center;font-size:16px}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.danger{color:var(--danger)}
+
+.app{display:grid;grid-template-columns:210px minmax(0,1fr) 290px;align-items:start;gap:16px;
+  padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}
+.panel h2{font-size:11px;font-family:var(--mono);font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.palette .list{display:flex;flex-direction:column;gap:4px}
+.blk{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid transparent;background:none;border-radius:6px;padding:6px 6px}
+.blk:hover{background:var(--accent-soft);border-color:var(--line)}
+.blk svg{flex:none;color:var(--ink)}
+.blk span{display:flex;flex-direction:column;min-width:0}
+.blk b{font-weight:500}
+.blk i{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+.stage{min-width:0;display:flex;flex-direction:column;gap:10px}
+.docbar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:end}
+.docbar label{display:flex;flex-direction:column;gap:3px;font-size:11px;font-family:var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.docbar input{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:6px 9px;min-height:34px;text-transform:none;letter-spacing:0;font-family:var(--ui);font-size:14px;color:var(--ink)}
+#tTitle{width:min(320px,100%)}
+#tWidth{width:90px;font-variant-numeric:tabular-nums}
+.zoom{display:flex;gap:4px;align-items:center;margin-left:auto}
+.zoom output{font-family:var(--mono);font-size:12px;min-width:44px;text-align:center;font-variant-numeric:tabular-nums;color:var(--muted)}
+.scroller{overflow:auto;border-radius:8px;border:1px solid var(--line);padding:22px;
+  background-color:var(--bg);background-image:radial-gradient(var(--grid) 1px,transparent 1px);background-size:16px 16px;max-height:calc(100vh - 170px);min-height:280px}
+#paper{display:inline-block;background:var(--paper);box-shadow:0 1px 2px rgba(0,0,0,.12),0 6px 24px rgba(0,0,0,.08);line-height:0}
+#paper svg{display:block;max-width:none}
+#paper .hit{cursor:pointer}
+#paper .hit:hover{fill:var(--hover)}
+.hint-line{font-size:12px;color:var(--muted)}
+
+.insp{display:flex;flex-direction:column;gap:12px;position:sticky;top:16px}
+.insp .type{font-size:15px;font-weight:600;margin:-4px 0 0}
+.field{display:flex;flex-direction:column;gap:4px}
+.field span{font-size:11px;font-family:var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.field textarea,.field input{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:7px 9px;resize:vertical;font-family:var(--dia);font-size:14px}
+.field textarea{min-height:58px}
+.row{display:flex;gap:6px;flex-wrap:wrap}
+.row .btn{flex:1 1 auto;justify-content:center}
+.cases{display:flex;flex-direction:column;gap:6px}
+.case{display:flex;gap:6px}
+.case input{flex:1;min-width:0}
+.hint{color:var(--muted);margin:0}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:12px;color:var(--muted);margin:0}
+.keys dt{font-family:var(--mono);color:var(--ink)}
+.keys dd{margin:0}
+.note{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin:0}
+
+#toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);
+  background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:6px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;max-width:calc(100% - 32px)}
+#toast.on{opacity:1;transform:translateX(-50%)}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+
+@media (max-width:980px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .palette .list{flex-direction:row;overflow-x:auto;padding-bottom:4px}
+  .blk{width:auto;flex:none}
+  .insp{position:static}
+  .scroller{max-height:none}
+}
+</style>
+
+<header class="bar">
+  <div class="brand">Struktogramm <small>DIN 66261 · Nassi-Shneiderman</small></div>
+  <div class="actions">
+    <button class="btn" id="bNew">Neu</button>
+    <button class="btn" id="bOpen">Öffnen</button>
+    <button class="btn" id="bSave" title="Als .nsd.json speichern">Speichern</button>
+    <span class="sep"></span>
+    <button class="btn primary" id="bPdf">PDF exportieren</button>
+    <button class="btn" id="bSvg">SVG</button>
+    <span class="sep"></span>
+    <button class="btn icon" id="bUndo" aria-label="Rückgängig" title="Rückgängig">↶</button>
+    <button class="btn icon" id="bRedo" aria-label="Wiederholen" title="Wiederholen">↷</button>
+  </div>
+  <input type="file" id="fileIn" accept=".json,.nsd,application/json" hidden>
+</header>
+
+<main class="app">
+  <aside class="panel palette">
+    <h2>Block einfügen</h2>
+    <div class="list" id="palette"></div>
+  </aside>
+
+  <section class="stage">
+    <div class="docbar">
+      <label for="tTitle">Titel<input id="tTitle" type="text"></label>
+      <label for="tWidth">Breite (px)<input id="tWidth" type="number" min="300" max="2400" step="20"></label>
+      <div class="zoom">
+        <button class="btn icon" id="zOut" aria-label="Verkleinern">−</button>
+        <output id="zVal">100 %</output>
+        <button class="btn icon" id="zIn" aria-label="Vergrößern">+</button>
+      </div>
+    </div>
+    <div class="scroller"><div id="paper"></div></div>
+    <div class="hint-line">Block antippen zum Bearbeiten. Neue Blöcke kommen hinter den markierten Block oder in einen markierten leeren Zweig.</div>
+  </section>
+
+  <aside class="panel insp" id="insp"></aside>
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ---------- Konstanten ---------- */
+const FS=14, LH=18, PAD=8, VPAD=8, IND=28, MINW=70, EMPTYH=LH+2*VPAD, FRAME=18, TITLEH=36, TFS=18;
+const DIAFONT='Arimo, Arial, Helvetica, sans-serif';
+const STORE='nsd-editor-autosave-v1';
+
+const TYPES={
+  action:{name:'Anweisung', c:'z. B. x = 5; printf()', make:()=>({type:'action',text:'Anweisung'})},
+  if:{name:'Verzweigung', c:'if … else', make:()=>({type:'if',cond:'Bedingung?',yesLabel:'wahr',noLabel:'falsch',yes:[],no:[]})},
+  switch:{name:'Fallauswahl', c:'switch … case', make:()=>({type:'switch',expr:'Ausdruck?',cases:[{label:'1',body:[]},{label:'2',body:[]},{label:'sonst',body:[]}]})},
+  while:{name:'Kopfgesteuerte Schleife', c:'while (…)', make:()=>({type:'while',cond:'solange Bedingung',body:[]})},
+  for:{name:'Zählschleife', c:'for (…;…;…)', make:()=>({type:'while',cond:'für i = 0 bis n − 1',body:[]})},
+  until:{name:'Fußgesteuerte Schleife', c:'do … while (…)', make:()=>({type:'until',cond:'solange Bedingung',body:[]})},
+  call:{name:'Unterprogramm', c:'funktion();', make:()=>({type:'call',text:'Funktion()'})},
+};
+const NAME={action:'Anweisung',if:'Verzweigung',switch:'Fallauswahl',while:'Kopfgesteuerte Schleife',until:'Fußgesteuerte Schleife',call:'Unterprogrammaufruf'};
+const ICON={
+  action:'<rect x="1" y="3" width="26" height="16"/>',
+  if:'<rect x="1" y="1" width="26" height="20"/><path d="M1 1 14 10 27 1M1 10h26M14 10v11"/>',
+  switch:'<rect x="1" y="1" width="26" height="20"/><path d="M1 1 19 10 27 1M1 10h26M10 6v15M19 10v11"/>',
+  while:'<rect x="1" y="1" width="26" height="20"/><path d="M7 8h20M7 8v13"/>',
+  for:'<rect x="1" y="1" width="26" height="20"/><path d="M7 8h20M7 8v13"/><path d="M10 4.5h8" stroke-dasharray="2 2"/>',
+  until:'<rect x="1" y="1" width="26" height="20"/><path d="M7 14h20M7 1v13"/>',
+  call:'<rect x="1" y="3" width="26" height="16"/><path d="M4.5 3v16M23.5 3v16"/>',
+};
+
+/* ---------- Zustand ---------- */
+let doc, sel=null, clip=null, zoom=1, undo=[], redo=[], editSnap=false;
+const ids=new WeakMap(); let idc=0;
+const idOf=o=>{ if(!ids.has(o)) ids.set(o,'n'+(++idc)); return ids.get(o); };
+let index=new Map();
+
+function sample(){
+  const a=t=>({type:'action',text:t});
+  const iff=(c,y,n)=>({type:'if',cond:c,yesLabel:'wahr',noLabel:'falsch',yes:y,no:n});
+  return {title:'SCHALTJAHR',width:720,body:[
+    a('Eingabe Jahreszahl'),
+    iff('Jahreszahl mod 4 = 0?',
+      [iff('Jahreszahl mod 100 = 0?',
+        [iff('Jahreszahl mod 400 = 0?',[a('Ausgabe "Schaltjahr"')],[a('Ausgabe "Kein Schaltjahr"')])],
+        [a('Ausgabe "Schaltjahr"')])],
+      [a('Ausgabe "Kein Schaltjahr"')])
+  ]};
+}
+
+/* ---------- Normalisieren (für Import) ---------- */
+const str=(v,d)=>typeof v==='string'?v:d;
+function normSeq(a){ return (Array.isArray(a)?a:[]).map(normNode).filter(Boolean); }
+function normNode(n){
+  if(!n||typeof n!=='object') return null;
+  switch(n.type){
+    case 'action': case 'call': return {type:n.type,text:str(n.text,'')};
+    case 'if': return {type:'if',cond:str(n.cond,''),yesLabel:str(n.yesLabel,'wahr'),noLabel:str(n.noLabel,'falsch'),yes:normSeq(n.yes),no:normSeq(n.no)};
+    case 'while': case 'until': return {type:n.type,cond:str(n.cond,''),body:normSeq(n.body)};
+    case 'switch': { let cs=(Array.isArray(n.cases)?n.cases:[]).map(c=>({label:str(c&&c.label,''),body:normSeq(c&&c.body)}));
+      while(cs.length<2) cs.push({label:'',body:[]}); return {type:'switch',expr:str(n.expr,''),cases:cs}; }
+  }
+  return null;
+}
+function normDoc(d){ return {title:str(d&&d.title,'Struktogramm'), width:Math.min(2400,Math.max(300,+(d&&d.width)||720)), body:normSeq(d&&d.body)}; }
+
+/* ---------- Messen ---------- */
+const cv=document.createElement('canvas').getContext('2d');
+function tw(s,bold,size){ cv.font=(bold?'700 ':'400 ')+(size||FS)+'px '+DIAFONT; return cv.measureText(s).width; }
+const L=s=>String(s??'').split('\n');
+const bw=s=>Math.max(0,...L(s).map(x=>tw(x)));
+const bh=s=>L(s).length*LH;
+
+function children(n){ switch(n.type){ case 'if':return [n.yes,n.no]; case 'while':case 'until':return [n.body]; case 'switch':return n.cases.map(c=>c.body); default:return []; } }
+
+function mw(n){ switch(n.type){
+  case 'action': return Math.max(MINW,bw(n.text)+2*PAD);
+  case 'call': return Math.max(MINW,bw(n.text)+2*PAD+20);
+  case 'if': return Math.max(bw(n.cond)+tw(n.yesLabel)+tw(n.noLabel)+6*PAD, smw(n.yes)+smw(n.no));
+  case 'while': case 'until': return Math.max(bw(n.cond)+2*PAD, IND+smw(n.body));
+  case 'switch': return Math.max(bw(n.expr)+4*PAD, n.cases.reduce((a,c)=>a+cmw(c),0));
+}}
+const cmw=c=>Math.max(smw(c.body),tw(c.label)+2*PAD);
+const smw=a=>a.length?Math.max(...a.map(mw)):MINW;
+function split(W,mins){ const t=mins.reduce((a,b)=>a+b,0); let acc=0;
+  return mins.map((m,i)=>{ if(i===mins.length-1) return W-acc; const v=Math.round(W*m/t); acc+=v; return v; }); }
+
+const ifHH=n=>VPAD+bh(n.cond)+LH+4;
+const swHH=n=>VPAD+bh(n.expr)+LH+4+Math.max(0,n.cases.length-3)*4;
+const loopCH=n=>bh(n.cond)+2*VPAD;
+function nh(n,w){ switch(n.type){
+  case 'action': case 'call': return bh(n.text)+2*VPAD;
+  case 'if': { const [a,b]=split(w,[smw(n.yes),smw(n.no)]); return ifHH(n)+Math.max(sh(n.yes,a),sh(n.no,b)); }
+  case 'while': case 'until': return loopCH(n)+sh(n.body,w-IND);
+  case 'switch': { const ws=split(w,n.cases.map(cmw)); return swHH(n)+Math.max(...n.cases.map((c,i)=>sh(c.body,ws[i]))); }
+}}
+const sh=(a,w)=>a.length?a.reduce((s,n)=>s+nh(n,w),0):EMPTYH;
+
+/* ---------- Layout → Primitive ---------- */
+function ln(o,x1,y1,x2,y2){ o.lines.push([x1,y1,x2,y2]); }
+function box(o,x,y,w,h){ ln(o,x,y,x+w,y); ln(o,x+w,y,x+w,y+h); ln(o,x,y+h,x+w,y+h); ln(o,x,y,x,y+h); }
+function txt(o,s,x,ty,a){ L(s).forEach((l,i)=>o.texts.push({s:l,x,y:ty+i*LH+13,a:a||'start'})); }
+
+function dn(o,n,x,y,w,h){
+  const id=idOf(n); if(sel===id) o.fills.push([x,y,w,h]);
+  o.hits.push({id,x,y,w,h}); box(o,x,y,w,h);
+  switch(n.type){
+    case 'action': txt(o,n.text,x+PAD,y+(h-bh(n.text))/2); break;
+    case 'call': ln(o,x+7,y,x+7,y+h); ln(o,x+w-7,y,x+w-7,y+h); txt(o,n.text,x+PAD+10,y+(h-bh(n.text))/2); break;
+    case 'if': {
+      const hh=ifHH(n), [a]=split(w,[smw(n.yes),smw(n.no)]), vx=x+a;
+      ln(o,x,y,vx,y+hh); ln(o,vx,y+hh,x+w,y); ln(o,x,y+hh,x+w,y+hh);
+      const cw=bw(n.cond), cx=Math.min(Math.max(vx,x+PAD+cw/2),x+w-PAD-cw/2);
+      txt(o,n.cond,cx,y+VPAD,'middle');
+      const ly=y+VPAD+bh(n.cond)+2;
+      txt(o,n.yesLabel,x+PAD,ly); txt(o,n.noLabel,x+w-PAD,ly,'end');
+      ds(o,n.yes,x,y+hh,a,h-hh); ds(o,n.no,vx,y+hh,w-a,h-hh); break; }
+    case 'while': { const ch=loopCH(n); txt(o,n.cond,x+PAD,y+VPAD); ds(o,n.body,x+IND,y+ch,w-IND,h-ch); break; }
+    case 'until': { const ch=loopCH(n); ds(o,n.body,x+IND,y,w-IND,h-ch); txt(o,n.cond,x+PAD,y+h-ch+VPAD); break; }
+    case 'switch': {
+      const hh=swHH(n), ws=split(w,n.cases.map(cmw)), vx=x+w-ws[ws.length-1];
+      ln(o,x,y,vx,y+hh); ln(o,vx,y+hh,x+w,y); ln(o,x,y+hh,x+w,y+hh);
+      const ew=bw(n.expr), cx=Math.min(Math.max(vx,x+PAD+ew/2),x+w-PAD-ew/2);
+      txt(o,n.expr,cx,y+VPAD,'middle');
+      const ly=y+hh-LH-2; let c0=x;
+      n.cases.forEach((c,i)=>{
+        const cw=ws[i], last=i===n.cases.length-1;
+        if(i>0 && c0<vx) ln(o,c0,y+hh*(c0-x)/(vx-x),c0,y+hh);
+        txt(o,c.label,last?c0+cw-PAD:c0+PAD,ly,last?'end':'start');
+        ds(o,c.body,c0,y+hh,cw,h-hh); c0+=cw; });
+      break; }
+  }
+}
+function ds(o,arr,x,y,w,h){
+  if(!arr.length){ const id=idOf(arr); if(sel===id) o.fills.push([x,y,w,h]);
+    o.hits.push({id,x,y,w,h,slot:true}); box(o,x,y,w,h); return; }
+  let cy=y;
+  arr.forEach((n,i)=>{ const hh=i===arr.length-1?y+h-cy:nh(n,w); dn(o,n,x,cy,w,hh); cy+=hh; });
+}
+function layout(){
+  const o={fills:[],lines:[],texts:[],hits:[]};
+  const W=Math.max(smw(doc.body),doc.width||720, tw(doc.title,true,TFS)), H=sh(doc.body,W);
+  const x0=FRAME, y0=FRAME+TITLEH;
+  o.title={s:doc.title,x:FRAME,y:FRAME+20};
+  ds(o,doc.body,x0,y0,W,H);
+  o.W=W+2*FRAME; o.H=y0+H+FRAME; return o;
+}
+
+/* ---------- SVG ---------- */
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const r=v=>Math.round(v*10)/10;
+function toSVG(o,live){
+  const z=live?zoom:1;
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${r(o.W)} ${r(o.H)}" width="${r(o.W*z)}" height="${r(o.H*z)}" font-family="${DIAFONT}" font-size="${FS}">`;
+  s+=`<rect width="${r(o.W)}" height="${r(o.H)}" fill="#ffffff"/>`;
+  if(live) o.fills.forEach(f=>s+=`<rect x="${r(f[0])}" y="${r(f[1])}" width="${r(f[2])}" height="${r(f[3])}" fill="#dbe4fd"/>`);
+  if(live) o.hits.filter(h=>h.slot).forEach(h=>s+=`<text x="${r(h.x+h.w/2)}" y="${r(h.y+h.h/2+5)}" text-anchor="middle" fill="#9aa3b2" font-size="12">leer</text>`);
+  s+=`<rect x="0.5" y="0.5" width="${r(o.W-1)}" height="${r(o.H-1)}" fill="none" stroke="#000" stroke-width="1"/>`;
+  s+=`<path fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="square" d="${o.lines.map(l=>`M${r(l[0])} ${r(l[1])}L${r(l[2])} ${r(l[3])}`).join('')}"/>`;
+  s+=`<text x="${o.title.x}" y="${o.title.y}" font-size="${TFS}" font-weight="700" fill="#000">${esc(o.title.s)}</text>`;
+  o.texts.forEach(t=>s+=`<text x="${r(t.x)}" y="${r(t.y)}" fill="#000" style="white-space:pre"${t.a!=='start'?` text-anchor="${t.a}"`:''}>${esc(t.s)}</text>`);
+  if(live) o.hits.forEach(h=>s+=`<rect class="hit" data-id="${h.id}" x="${r(h.x)}" y="${r(h.y)}" width="${r(h.w)}" height="${r(h.h)}" fill="transparent"/>`);
+  return s+'</svg>';
+}
+
+/* ---------- Rendern ---------- */
+const $=id=>document.getElementById(id);
+const paper=$('paper'), insp=$('insp');
+function reindex(){
+  index=new Map();
+  const walk=arr=>{ index.set(idOf(arr),{arr,slot:true}); arr.forEach(n=>{ index.set(idOf(n),{node:n,arr}); children(n).forEach(walk); }); };
+  walk(doc.body);
+}
+function renderPaper(){
+  paper.innerHTML=toSVG(layout(),true);
+  try{ localStorage.setItem(STORE,JSON.stringify(doc)); }catch(e){}
+}
+function render(withInsp){
+  reindex(); if(sel&&!index.has(sel)) sel=null;
+  renderPaper();
+  if(document.activeElement!==$('tTitle')) $('tTitle').value=doc.title;
+  if(document.activeElement!==$('tWidth')) $('tWidth').value=doc.width;
+  $('zVal').textContent=Math.round(zoom*100)+' %';
+  $('bUndo').disabled=!undo.length; $('bRedo').disabled=!redo.length;
+  if(withInsp!==false) renderInsp();
+}
+
+function fld(k,label,val,multi){
+  return `<label class="field"><span>${label}</span>${multi
+    ?`<textarea data-k="${k}" rows="2">${esc(val)}</textarea>`
+    :`<input type="text" data-k="${k}" value="${esc(val)}">`}</label>`;
+}
+function renderInsp(){
+  const e=sel&&index.get(sel); let h='';
+  if(!e){
+    h=`<h2>Eigenschaften</h2><p class="hint">Tippe einen Block an, um Text und Bedingungen zu ändern, ihn zu verschieben oder zu löschen.</p>
+    <dl class="keys"><dt>Entf</dt><dd>Block löschen</dd><dt>⌘/Strg Z</dt><dd>Rückgängig</dd><dt>⌘/Strg ⇧ Z</dt><dd>Wiederholen</dd>
+    <dt>⌘/Strg C X V</dt><dd>Kopieren, Ausschneiden, Einfügen</dd><dt>Alt ↑ ↓</dt><dd>Block verschieben</dd><dt>⌘/Strg S</dt><dd>Speichern</dd></dl>
+    <p class="note">Speichern erzeugt eine <b>.nsd.json</b>-Datei. Die kannst du später mit „Öffnen“ weiterbearbeiten. Mehrzeiliger Text: Enter im Textfeld.</p>`;
+  } else if(e.slot){
+    h=`<h2>Leerer Zweig</h2><p class="hint">Wähle links einen Block, um ihn hier einzufügen. Leer lassen ist erlaubt (leerer Zweig nach DIN).</p>`+
+      (clip?`<div class="row"><button class="btn" data-act="paste">Einfügen</button></div>`:'');
+  } else {
+    const n=e.node, i=e.arr.indexOf(n);
+    h=`<h2>Markierter Block</h2><p class="type">${NAME[n.type]}</p>`;
+    if(n.type==='action'||n.type==='call') h+=fld('text','Text',n.text,true);
+    if(n.type==='if') h+=fld('cond','Bedingung',n.cond,true)+`<div class="row">${fld('yesLabel','Links',n.yesLabel)}${fld('noLabel','Rechts',n.noLabel)}</div>`+
+      `<div class="row"><button class="btn" data-act="swap">Zweige tauschen</button></div>`;
+    if(n.type==='while') h+=fld('cond','Schleifenbedingung (oben)',n.cond,true);
+    if(n.type==='until') h+=fld('cond','Schleifenbedingung (unten)',n.cond,true);
+    if(n.type==='switch'){
+      h+=fld('expr','Ausdruck',n.expr,true)+`<div class="field"><span>Fälle</span><div class="cases">`+
+        n.cases.map((c,ci)=>`<div class="case"><input type="text" data-case="${ci}" value="${esc(c.label)}" aria-label="Fall ${ci+1}">
+        <button class="btn icon" data-act="delcase" data-ci="${ci}" aria-label="Fall entfernen" ${n.cases.length<=2?'disabled':''}>×</button></div>`).join('')+
+        `</div></div><div class="row"><button class="btn" data-act="addcase">Fall hinzufügen</button></div>`;
+    }
+    h+=`<div class="row"><button class="btn" data-act="up" ${i===0?'disabled':''}>↑ Hoch</button><button class="btn" data-act="down" ${i===e.arr.length-1?'disabled':''}>↓ Runter</button></div>
+    <div class="row"><button class="btn" data-act="copy">Kopieren</button><button class="btn" data-act="cut">Ausschneiden</button>${clip?'<button class="btn" data-act="paste">Danach einfügen</button>':''}</div>
+    <div class="row"><button class="btn danger" data-act="del">Löschen</button></div>`;
+  }
+  insp.innerHTML=h;
+}
+
+/* ---------- Verlauf ---------- */
+function snap(){ undo.push(JSON.stringify(doc)); if(undo.length>200) undo.shift(); redo=[]; }
+function doUndo(){ if(!undo.length) return; redo.push(JSON.stringify(doc)); doc=JSON.parse(undo.pop()); sel=null; render(); }
+function doRedo(){ if(!redo.length) return; undo.push(JSON.stringify(doc)); doc=JSON.parse(redo.pop()); sel=null; render(); }
+
+/* ---------- Bearbeiten ---------- */
+const clone=o=>JSON.parse(JSON.stringify(o));
+function insert(node){
+  snap(); const e=sel&&index.get(sel);
+  if(e&&e.slot) e.arr.push(node);
+  else if(e) e.arr.splice(e.arr.indexOf(e.node)+1,0,node);
+  else doc.body.push(node);
+  sel=idOf(node); render();
+  if(matchMedia('(pointer:fine)').matches){ const f=insp.querySelector('textarea,input'); if(f){ f.focus(); f.select(); } }
+}
+function act(a,extra){
+  const e=sel&&index.get(sel); if(!e) return;
+  const n=e.node, arr=e.arr, i=n?arr.indexOf(n):-1;
+  switch(a){
+    case 'del': snap(); arr.splice(i,1); sel=arr.length?idOf(arr[Math.min(i,arr.length-1)]):idOf(arr); break;
+    case 'up': if(i>0){ snap(); arr.splice(i,1); arr.splice(i-1,0,n); } break;
+    case 'down': if(i<arr.length-1){ snap(); arr.splice(i,1); arr.splice(i+1,0,n); } break;
+    case 'copy': clip=clone(n); toast('Kopiert'); break;
+    case 'cut': clip=clone(n); snap(); arr.splice(i,1); sel=arr.length?idOf(arr[Math.min(i,arr.length-1)]):idOf(arr); toast('Ausgeschnitten'); break;
+    case 'paste': if(clip){ insert(clone(clip)); return; } break;
+    case 'swap': snap(); [n.yes,n.no]=[n.no,n.yes]; [n.yesLabel,n.noLabel]=[n.noLabel,n.yesLabel]; break;
+    case 'addcase': snap(); n.cases.splice(Math.max(1,n.cases.length-1),0,{label:String(n.cases.length),body:[]}); break;
+    case 'delcase': if(n.cases.length>2){ snap(); n.cases.splice(+extra,1); } break;
+    default: return;
+  }
+  render();
+}
+
+/* ---------- Dateien ---------- */
+const fname=()=>(doc.title||'').replace(/[^\wäöüÄÖÜß\- ]+/g,'').trim().replace(/\s+/g,'_')||'Struktogramm';
+async function saveFile(name,data,mime){
+  let d=null;
+  if(window.claude&&typeof window.claude.use==='function'){ try{ d=await window.claude.use('downloads'); }catch(e){ d=null; } }
+  if(d){
+    try{ const res=await d.save({filename:name,data}); if(res&&res.status==='saved') toast('Gespeichert: '+name); }
+    catch(e){ const c=e&&e.code; toast(c==='declined'?'Speichern abgebrochen':c==='rate_limited'?'Bitte kurz warten und nochmal versuchen':'Speichern ist hier nicht möglich'); }
+    return;
+  }
+  const blob=data instanceof Blob?data:new Blob([data],{type:mime||'application/octet-stream'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1500);
+  toast('Datei erstellt: '+name);
+}
+function saveNsd(){
+  const data=JSON.stringify({format:'struktogramm',version:1,diagram:doc},null,2);
+  saveFile(fname()+'.nsd.json',data,'application/json');
+}
+function exportSvg(){ saveFile(fname()+'.svg',toSVG(layout(),false),'image/svg+xml'); }
+function exportPdf(){
+  if(!window.jspdf){ toast('PDF-Bibliothek wurde nicht geladen. Seite neu laden.'); return; }
+  const o=layout(), {jsPDF}=window.jspdf, land=o.W>o.H;
+  const pdf=new jsPDF({orientation:land?'landscape':'portrait',unit:'mm',format:'a4'});
+  const pw=pdf.internal.pageSize.getWidth(), ph=pdf.internal.pageSize.getHeight(), m=12;
+  const k=Math.min((pw-2*m)/o.W,(ph-2*m)/o.H,0.27), X=v=>m+v*k, Y=v=>m+v*k, pt=px=>px*k/0.3528;
+  pdf.setProperties({title:doc.title,creator:'Struktogramm-Editor'});
+  pdf.setDrawColor(0); pdf.setTextColor(0);
+  pdf.setLineWidth(0.25); pdf.rect(X(0),Y(0),o.W*k,o.H*k);
+  pdf.setLineWidth(0.4); pdf.setLineCap('square');
+  o.lines.forEach(l=>pdf.line(X(l[0]),Y(l[1]),X(l[2]),Y(l[3])));
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(pt(TFS)); pdf.text(o.title.s,X(o.title.x),Y(o.title.y));
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(pt(FS));
+  o.texts.forEach(t=>{ if(t.s) pdf.text(t.s,X(t.x),Y(t.y),{align:t.a==='middle'?'center':t.a==='end'?'right':'left'}); });
+  saveFile(fname()+'.pdf',pdf.output('arraybuffer'),'application/pdf');
+}
+function openFile(file){
+  const fr=new FileReader();
+  fr.onload=()=>{
+    try{
+      const j=JSON.parse(fr.result); const d=j&&j.format==='struktogramm'?j.diagram:(j&&j.body?j:null);
+      if(!d) throw new Error();
+      snap(); doc=normDoc(d); sel=null; render(); toast('Geöffnet: '+file.name);
+    }catch(e){ toast('Die Datei ist keine Struktogramm-Datei (.nsd.json).'); }
+  };
+  fr.readAsText(file);
+}
+
+/* ---------- Toast ---------- */
+let tt; function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('on'),2600); }
+
+/* ---------- Palette ---------- */
+$('palette').innerHTML=Object.entries(TYPES).map(([k,t])=>
+  `<button class="blk" data-new="${k}"><svg width="28" height="22" viewBox="0 0 28 22" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true">${ICON[k]}</svg><span><b>${t.name}</b><i>${esc(t.c)}</i></span></button>`).join('');
+$('palette').addEventListener('click',e=>{ const b=e.target.closest('[data-new]'); if(b) insert(TYPES[b.dataset.new].make()); });
+
+/* ---------- Events ---------- */
+paper.addEventListener('click',e=>{ const h=e.target.closest('[data-id]'); sel=h?h.dataset.id:null; render(); });
+insp.addEventListener('click',e=>{ const b=e.target.closest('[data-act]'); if(b&&!b.disabled) act(b.dataset.act,b.dataset.ci); });
+insp.addEventListener('focusin',e=>{ if(e.target.matches('[data-k],[data-case]')&&!editSnap){ snap(); editSnap=true; } });
+insp.addEventListener('focusout',()=>{ editSnap=false; $('bUndo').disabled=!undo.length; });
+insp.addEventListener('input',e=>{
+  const en=sel&&index.get(sel); if(!en||!en.node) return; const t=e.target;
+  if(t.dataset.k) en.node[t.dataset.k]=t.value;
+  else if(t.dataset.case!=null) en.node.cases[+t.dataset.case].label=t.value;
+  renderPaper();
+});
+$('tTitle').addEventListener('focus',()=>snap());
+$('tTitle').addEventListener('input',e=>{ doc.title=e.target.value; renderPaper(); });
+$('tWidth').addEventListener('focus',()=>snap());
+$('tWidth').addEventListener('change',e=>{ doc.width=Math.min(2400,Math.max(300,+e.target.value||720)); render(false); });
+$('zIn').onclick=()=>{ zoom=Math.min(3,+(zoom+0.1).toFixed(2)); render(false); };
+$('zOut').onclick=()=>{ zoom=Math.max(0.3,+(zoom-0.1).toFixed(2)); render(false); };
+$('bNew').onclick=()=>{ snap(); doc={title:'Neues Struktogramm',width:720,body:[]}; sel=null; render(); toast('Neues Blatt. Mit ↶ zurück zum vorherigen.'); };
+$('bOpen').onclick=()=>$('fileIn').click();
+$('fileIn').onchange=e=>{ const f=e.target.files[0]; if(f) openFile(f); e.target.value=''; };
+$('bSave').onclick=saveNsd;
+$('bPdf').onclick=exportPdf;
+$('bSvg').onclick=exportSvg;
+$('bUndo').onclick=doUndo; $('bRedo').onclick=doRedo;
+
+document.addEventListener('keydown',e=>{
+  const typing=e.target.matches('input,textarea'), mod=e.metaKey||e.ctrlKey, k=e.key.toLowerCase();
+  if(mod&&k==='s'){ e.preventDefault(); saveNsd(); return; }
+  if(typing) return;
+  if(mod&&k==='z'){ e.preventDefault(); e.shiftKey?doRedo():doUndo(); }
+  else if(mod&&k==='y'){ e.preventDefault(); doRedo(); }
+  else if(mod&&k==='c') act('copy');
+  else if(mod&&k==='x') act('cut');
+  else if(mod&&k==='v') act('paste');
+  else if(e.altKey&&e.key==='ArrowUp'){ e.preventDefault(); act('up'); }
+  else if(e.altKey&&e.key==='ArrowDown'){ e.preventDefault(); act('down'); }
+  else if(e.key==='Delete'||e.key==='Backspace'){ const en=sel&&index.get(sel); if(en&&en.node){ e.preventDefault(); act('del'); } }
+  else if(e.key==='Escape'){ sel=null; render(); }
+});
+
+/* ---------- Start ---------- */
+try{ const s=localStorage.getItem(STORE); doc=s?normDoc(JSON.parse(s)):sample(); }catch(e){ doc=sample(); }
+render();
+if(document.fonts&&document.fonts.load) document.fonts.load('14px Arimo').then(()=>render(false)).catch(()=>{});
+</script>
